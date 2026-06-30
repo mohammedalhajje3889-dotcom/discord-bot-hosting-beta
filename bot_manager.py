@@ -24,13 +24,75 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 active_processes: Dict[int, subprocess.Popen] = {}
 process_lock = threading.Lock()
 
+DATA_HELPER_SOURCE = os.path.join(os.path.dirname(__file__), "data_helper.py")
+
 def ensure_dirs(bot_id: int):
     """إنشاء المجلدات الخاصة ببوت معين"""
     bot_dir = os.path.join(BOTS_DIR, str(bot_id))
     os.makedirs(bot_dir, exist_ok=True)
     os.makedirs(os.path.join(bot_dir, "data"), exist_ok=True)
     os.makedirs(os.path.join(bot_dir, "logs"), exist_ok=True)
+    
+    # حقن data_helper.py في مجلد البوت
+    _inject_data_helper(bot_dir)
+    
     return bot_dir
+
+def _inject_data_helper(bot_dir: str):
+    """حقن ملف data_helper.py في مجلد البوت وإنشاء قاعدة البيانات
+    
+    ينسخ الملف المساعد إلى مجلد البوت (وجميع المجلدات الفرعية)
+    وينشئ ملف قاعدة بيانات فارغ في مجلد data/
+    """
+    # 1. نسخ data_helper.py إلى مجلد البوت
+    dest = os.path.join(bot_dir, "data_helper.py")
+    if not os.path.exists(dest):
+        try:
+            if os.path.exists(DATA_HELPER_SOURCE):
+                shutil.copy2(DATA_HELPER_SOURCE, dest)
+                print(f"   📦 تم حقن data_helper.py في البوت")
+            else:
+                print(f"   ⚠️ ملف data_helper.py غير موجود في المصدر")
+        except Exception as e:
+            print(f"   ⚠️ فشل حقن data_helper.py: {e}")
+    
+    # 2. أيضاً ننسخه في مجلد code/ إذا موجود (للبوتات المرفوعة ZIP)
+    code_dir = os.path.join(bot_dir, "code")
+    if os.path.exists(code_dir):
+        dest_code = os.path.join(code_dir, "data_helper.py")
+        if not os.path.exists(dest_code) and os.path.exists(DATA_HELPER_SOURCE):
+            try:
+                shutil.copy2(DATA_HELPER_SOURCE, dest_code)
+                print(f"   📦 تم حقن data_helper.py في مجلد الكود")
+            except Exception as e:
+                print(f"   ⚠️ فشل حقن data_helper.py في الكود: {e}")
+    
+    # 3. إنشاء قاعدة بيانات فارغة للبوت
+    data_dir = os.path.join(bot_dir, "data")
+    db_path = os.path.join(data_dir, "bot_data.db")
+    if not os.path.exists(db_path):
+        try:
+            # إنشاء قاعدة بيانات فارغة بواسطة Python
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS kv_store (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                CREATE TABLE IF NOT EXISTS json_store (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            conn.commit()
+            conn.close()
+            print(f"   🗄️ تم إنشاء قاعدة بيانات البوت: bot_data.db")
+        except Exception as e:
+            print(f"   ⚠️ فشل إنشاء قاعدة البيانات: {e}")
 
 def generate_minimal_bot_script(token: str, bot_name: str) -> str:
     """
@@ -52,6 +114,19 @@ import sys
 import json
 import signal
 
+# ========== قاعدة البيانات المدمجة ==========
+# استيراد نظام التخزين المدمج لكل بوت
+# يوفر:
+#   from data_helper import db
+#   db.set(key, value) / db.get(key, default)
+#   db.table(name).add(data) / db.table(name).all()
+#   db.save(key, data) / db.load(key)
+try:
+    from data_helper import db
+    HAS_DB = True
+except ImportError:
+    HAS_DB = False
+
 # ========== إعدادات البوت ==========
 # التوكن يقرأ من متغير البيئة للأمان
 TOKEN = os.environ.get("DISCORD_TOKEN", "")
@@ -68,14 +143,15 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
-# ========== مساحة التخزين الدائمة ==========
-os.makedirs(DATA_DIR, exist_ok=True)
-
 # ========== الأحداث الأساسية ==========
 @bot.event
 async def on_ready():
     print(f"✅ {{bot.user}} متصل! (ID: {{bot.user.id}})")
     print(f"🌐 شغال في {{len(bot.guilds)}} server(s)")
+    if HAS_DB:
+        db.set("bot_ready", True)
+        db.set("bot_start_time", str(__import__('datetime').datetime.now()))
+        print(f"🗄️ قاعدة البيانات البوت جاهزة")
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.playing,
@@ -109,9 +185,32 @@ async def info(ctx):
     embed.add_field(name="Ping", value=f"{{round(bot.latency * 1000)}}ms", inline=True)
     await ctx.send(embed=embed)
 
+# ========== أوامر قاعدة البيانات (مثال) ==========
+if HAS_DB:
+    @bot.command(name="stats")
+    async def stats(ctx):
+        """إحصائيات البوت"""
+        cmd_count = db.get("command_count", 0)
+        start_time = db.get("bot_start_time", "غير معروف")
+        await ctx.send(f"📊 إحصائيات البوت:\n⚡ أوامر منفذة: {{cmd_count}}\n🕐 آخر تشغيل: {{start_time}}")
+
+    @bot.command(name="save")
+    async def save_data(ctx, key: str, *, value: str):
+        """حفظ بيانات: !save key value"""
+        db.set(f"user_{{ctx.author.id}}_{{key}}", value)
+        await ctx.send(f"✅ تم حفظ `{{key}}` = `{{value}}`")
+
+    @bot.command(name="load")
+    async def load_data(ctx, key: str):
+        """استرجاع بيانات: !load key"""
+        value = db.get(f"user_{{ctx.author.id}}_{{key}}", "لا توجد بيانات")
+        await ctx.send(f"📂 `{{key}}` = {{value}}")
+
 # ========== تشغيل البوت ==========
 def shutdown_handler(signum, frame):
     print("🛑 جاري إيقاف البوت...")
+    if HAS_DB:
+        db.close()
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, shutdown_handler)
@@ -119,6 +218,8 @@ signal.signal(signal.SIGINT, shutdown_handler)
 
 if __name__ == "__main__":
     print(f"🚀 بدء تشغيل {{BOT_NAME}}...")
+    if HAS_DB:
+        print(f"🗄️ قاعدة البيانات: {{db.db_path}}")
     try:
         bot.run(TOKEN, reconnect=True)
     except discord.LoginFailure:
@@ -335,6 +436,17 @@ def extract_zip_bot(zip_path: str, bot_id: int) -> Optional[str]:
         if bot_data:
             bot_prefix = db.get_setting(bot_id, 'PREFIX', '')
             _inject_credentials(code_dir, bot_data['token'], bot_prefix)
+        
+        # ===== حقن data_helper.py في مجلد البوت =====
+        _inject_data_helper(bot_dir)
+        # أيضاً ننسخها داخل مجلد الكود
+        code_helper = os.path.join(code_dir, "data_helper.py")
+        if not os.path.exists(code_helper) and os.path.exists(DATA_HELPER_SOURCE):
+            try:
+                shutil.copy2(DATA_HELPER_SOURCE, code_helper)
+                print(f"   📦 تم حقن data_helper.py في مجلد الكود")
+            except Exception as e:
+                print(f"   ⚠️ فشل حقن data_helper.py: {e}")
         
         # ===== تثبيت المتطلبات إذا وجدت =====
         # نبحث عن requirements.txt في الجذر والمجلدات الفرعية
@@ -683,10 +795,11 @@ def add_bot_from_token(name: str, token: str, description: str = "") -> Optional
         description=description
     )
     
-    # إنشاء مجلد البوت
+    # إنشاء مجلد البوت + حقن قاعدة البيانات
     ensure_dirs(bot_id)
     
     db.add_log(bot_id, f"✅ تم إضافة البوت {name} بنجاح", "success")
+    db.add_log(bot_id, f"🗄️ تم إنشاء قاعدة بيانات مخصصة للبوت", "info")
     return bot_id
 
 def add_bot_from_zip(name: str, token: str, zip_file_path: str, 
