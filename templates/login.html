@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="login-page">
+    <div class="login-card fade-in">
+        <div class="logo">
+            <i class="fab fa-discord"></i>
+            <h2>تسجيل الدخول</h2>
+            <p class="text-muted-custom">أدخل كلمة المرور للدخول إلى لوحة التحكم</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('login') }}">
+            <div class="mb-3">
+                <label class="form-label">كلمة المرور</label>
+                <div class="input-group">
+                    <span class="input-group-text" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary);">
+                        <i class="fas fa-lock"></i>
+                    </span>
+                    <input type="password" name="password" class="form-control" 
+                           placeholder="أدخل كلمة المرور" required autofocus>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-discord w-100">
+                <i class="fas fa-sign-in-alt"></i> دخول
+            </button>
+        </form>
+        
+        <div class="text-center mt-3">
+            <small class="text-muted-custom">
+                <i class="fas fa-info-circle"></i> كلمة المرور الافتراضية: <code>admin123</code>
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}

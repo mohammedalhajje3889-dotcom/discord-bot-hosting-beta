@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="fade-in">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb" style="background: transparent;">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}" class="text-muted-custom">لوحة التحكم</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page">{{ bot.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="row g-4">
+        <!-- معلومات البوت -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-info-circle"></i> معلومات البوت
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div style="font-size: 3rem;">
+                            <span class="status-indicator status-{{ bot.get('current_status', 'stopped') }}" 
+                                  style="width: 20px; height: 20px; display: inline-block; border-radius: 50%;"></span>
+                            <i class="fab fa-discord" style="color: var(--accent);"></i>
+                        </div>
+                        <h4 class="text-white mt-2">{{ bot.name }}</h4>
+                        <span class="badge bg-{{ 'success' if bot.get('current_status') == 'running' else 'warning' if bot.get('current_status') == 'stopped' else 'danger' }} fs-6">
+                            {{ {'running': '🟢 شغال', 'stopped': '🟡 متوقف', 'crashed': '🔴 معطل'}.get(bot.get('current_status', 'stopped'), 'متوقف') }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="form-label">نوع البوت</small>
+                        <div class="d-flex align-items-center">
+                            {% if bot.bot_type == 'token' %}
+                            <i class="fas fa-key text-warning me-2"></i>
+                            <span>توكن فقط</span>
+                            {% else %}
+                            <i class="fas fa-file-archive text-info me-2"></i>
+                            <span>ملف ZIP ({{ bot.entry_point }})</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="form-label">التوكن</small>
+                        <div class="bot-token" style="font-family: monospace; font-size: 0.8rem; word-break: break-all; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px;">
+                            {{ bot.token[:30] }}...
+                        </div>
+                    </div>
+                    
+                    {% if bot.description %}
+                    <div class="mb-3">
+                        <small class="form-label">الوصف</small>
+                        <p class="text-muted-custom small">{{ bot.description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <small class="form-label">تاريخ الإضافة</small>
+                        <p class="text-muted-custom small">{{ bot.created_at[:19] if bot.created_at else '--' }}</p>
+                    </div>
+                    
+                    {% if bot.last_started %}
+                    <div class="mb-3">
+                        <small class="form-label">آخر تشغيل</small>
+                        <p class="text-muted-custom small">{{ bot.last_started[:19] if bot.last_started else '--' }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if bot.pid %}
+                    <div class="mb-3">
+                        <small class="form-label">PID</small>
+                        <p class="text-muted-custom small">{{ bot.pid }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- أزرار التحكم -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fas fa-controls"></i> التحكم
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if bot.get('current_status') == 'running' %}
+                        <form method="POST" action="{{ url_for('stop_bot', bot_id=bot.id) }}">
+                            <button type="submit" class="btn btn-warning-custom w-100">
+                                <i class="fas fa-stop"></i> إيقاف البوت
+                            </button>
+                        </form>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('start_bot', bot_id=bot.id) }}">
+                            <button type="submit" class="btn btn-success-custom w-100">
+                                <i class="fas fa-play"></i> تشغيل البوت
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <form method="POST" action="{{ url_for('restart_bot', bot_id=bot.id) }}">
+                            <button type="submit" class="btn btn-outline-discord w-100">
+                                <i class="fas fa-sync-alt"></i> إعادة تشغيل
+                            </button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('delete_bot', bot_id=bot.id) }}" 
+                              onsubmit="return confirm('هل أنت متأكد من حذف هذا البوت؟ سيتم حذف جميع البيانات!');">
+                            <button type="submit" class="btn btn-danger-custom w-100">
+                                <i class="fas fa-trash-alt"></i> حذف البوت
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- الإعدادات -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fas fa-cog"></i> الإعدادات
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_bot_settings', bot_id=bot.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">اسم البوت</label>
+                            <input type="text" name="name" class="form-control" value="{{ bot.name }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">الوصف</label>
+                            <textarea name="description" class="form-control" rows="2">{{ bot.description }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3 form-check form-switch">
+                            <input type="checkbox" name="auto_restart" class="form-check-input" id="autoRestart"
+                                   {% if bot.auto_restart %}checked{% endif %}>
+                            <label class="form-check-label" for="autoRestart">إعادة تشغيل تلقائي عند التعطل</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">بادئة الأوامر (Prefix)</label>
+                            <input type="text" name="prefix" class="form-control" 
+                                   value="{{ db.get_setting(bot.id, 'PREFIX', '') if db else '' }}"
+                                   placeholder="مثال: ! (افتراضي)">
+                            <small class="text-muted-custom">إذا كان البوت يستخدم بادئة مختلفة</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-discord w-100">
+                            <i class="fas fa-save"></i> حفظ الإعدادات
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- السجلات -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-terminal"></i> سجل الأحداث (Logs)</span>
+                    <button class="btn btn-sm btn-outline-discord" onclick="refreshLogs()">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" id="logContainer">
+                        {% if logs %}
+                            {% for log in logs[:100] %}
+                            <div class="log-entry log-{{ log.level }}">
+                                <span class="log-time">{{ log.timestamp[11:19] if log.timestamp else '--:--:--' }}</span>
+                                {{ log.message }}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted-custom py-5">
+                                <i class="fas fa-terminal" style="font-size: 2rem;"></i>
+                                <p class="mt-2">لا توجد سجلات بعد. قم بتشغيل البوت لبدء ظهور السجلات.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- بيانات المستخدمين (ميزة حفظ البيانات) -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fas fa-database"></i> حفظ البيانات
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-folder-open" style="font-size: 2rem; color: var(--accent);"></i>
+                                <div>
+                                    <h6 class="text-white mb-0">تخزين دائم</h6>
+                                    <small class="text-muted-custom">بيانات البوت محفوظة في مجلد مخصص</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-shield-alt" style="font-size: 2rem; color: var(--success);"></i>
+                                <div>
+                                    <h6 class="text-white mb-0">مقاوم للانقطاع</h6>
+                                    <small class="text-muted-custom">البيانات تبقى حتى بعد انقطاع الاتصال</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-sync-alt" style="font-size: 2rem; color: var(--warning);"></i>
+                                <div>
+                                    <h6 class="text-white mb-0">إعادة تشغيل تلقائي</h6>
+                                    <small class="text-muted-custom">يعيد تشغيل نفسه تلقائياً عند التعطل</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-hard-hat" style="font-size: 2rem; color: var(--danger);"></i>
+                                <div>
+                                    <h6 class="text-white mb-0">استقرار عالي</h6>
+                                    <small class="text-muted-custom">يعمل بثبات على Termux</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr style="border-color: var(--border);">
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>كيف يعمل حفظ البيانات؟</strong>
+                        <p class="mb-0 mt-1 small">
+                            كل بوت يحصل على مجلد <code>data/</code> خاص به داخل مجلد البوت. 
+                            هذا المجلد يبقى محفوظاً حتى عند إعادة تشغيل البوت أو انقطاع الاتصال. 
+                            يمكن للبوت استخدام هذا المجلد لحفظ ملفات JSON, SQLite, أو أي بيانات أخرى.
+                            المسار متاح كمتغير بيئة <code>BOT_DATA_DIR</code> أو <code>DATA_DIR</code>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// تحديث السجلات بشكل حي
+function refreshLogs() {
+    fetch('/api/bot/{{ bot.id }}/logs/50')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('logContainer');
+            if (data.logs && data.logs.length > 0) {
+                container.innerHTML = data.logs.map(log => 
+                    `<div class="log-entry log-${log.level}">
+                        <span class="log-time">${log.timestamp ? log.timestamp.substring(11, 19) : '--:--:--'}</span>
+                        ${log.message}
+                    </div>`
+                ).join('');
+                container.scrollTop = container.scrollHeight;
+            }
+        })
+        .catch(() => {});
+}
+
+// تحديث تلقائي كل 5 ثواني
+setInterval(refreshLogs, 5000);
+
+// التمرير لأسفل عند التحميل
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('logContainer');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+});
+</script>
+{% endblock %}

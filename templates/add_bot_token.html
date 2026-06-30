@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-key"></i> إضافة بوت جديد - بواسطة التوكن
+            </div>
+            <div class="card-body">
+                <p class="text-muted-custom">
+                    <i class="fas fa-info-circle"></i> 
+                    أدخل اسم البوت وتوكنه. سيتم إنشاء بوت بسيط يقوم بالاتصال بالديسكورد والبقاء متصلاً.
+                </p>
+                
+                <form method="POST" action="{{ url_for('add_bot_token') }}">
+                    <div class="mb-3">
+                        <label class="form-label">اسم البوت <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary);">
+                                <i class="fas fa-tag"></i>
+                            </span>
+                            <input type="text" name="name" class="form-control" 
+                                   placeholder="مثال: My Cool Bot" 
+                                   value="{{ name if name else '' }}" required>
+                        </div>
+                        <small class="text-muted-custom">اسم يوصف به البوت لسهولة التعرف عليه</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">توكن البوت (Token) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary);">
+                                <i class="fab fa-discord"></i>
+                            </span>
+                            <input type="password" name="token" class="form-control" 
+                                   placeholder="أدخل توكن البوت من Discord Developer Portal" 
+                                   value="{{ token if token else '' }}" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="toggleToken()">
+                                <i class="fas fa-eye" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted-custom">
+                            يمكنك الحصول على التوكن من 
+                            <a href="https://discord.com/developers/applications" target="_blank" class="text-info">
+                                Discord Developer Portal
+                            </a>
+                        </small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">وصف (اختياري)</label>
+                        <textarea name="description" class="form-control" rows="2" 
+                                  placeholder="وصف مختصر للبوت..."></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-discord">
+                            <i class="fas fa-plus-circle"></i> إضافة البوت
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-discord">
+                            <i class="fas fa-arrow-right"></i> رجوع
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleToken() {
+    const input = document.querySelector('input[name="token"]');
+    const icon = document.getElementById('eyeIcon');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+</script>
+{% endblock %}

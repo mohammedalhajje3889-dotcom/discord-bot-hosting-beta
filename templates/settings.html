@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-cog"></i> إعدادات المنصة
+            </div>
+            <div class="card-body">
+                <h5 class="text-white mb-3"><i class="fas fa-key"></i> تغيير كلمة المرور</h5>
+                
+                <form method="POST" action="{{ url_for('settings') }}">
+                    <div class="mb-3">
+                        <label class="form-label">كلمة المرور الجديدة</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary);">
+                                <i class="fas fa-lock"></i>
+                            </span>
+                            <input type="password" name="new_password" class="form-control" 
+                                   placeholder="أدخل كلمة المرور الجديدة" required minlength="4">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">تأكيد كلمة المرور</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-secondary);">
+                                <i class="fas fa-check-circle"></i>
+                            </span>
+                            <input type="password" name="confirm_password" class="form-control" 
+                                   placeholder="أعد إدخال كلمة المرور" required>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>ملاحظة:</strong> تغيير كلمة المرور هنا مؤقت فقط. 
+                        للتخزين الدائم، قم بتعيين متغير البيئة <code>ADMIN_PASSWORD</code>.
+                    </div>
+                    
+                    <button type="submit" class="btn btn-discord w-100">
+                        <i class="fas fa-save"></i> حفظ التغييرات
+                    </button>
+                </form>
+                
+                <hr style="border-color: var(--border);">
+                
+                <h5 class="text-white mb-3"><i class="fas fa-info-circle"></i> معلومات النظام</h5>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="p-2" style="background: var(--bg-secondary); border-radius: 8px;">
+                            <small class="text-muted-custom">Python</small>
+                            <div class="text-white">{{ sys.version_info.major }}.{{ sys.version_info.minor }}.{{ sys.version_info.micro }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2" style="background: var(--bg-secondary); border-radius: 8px;">
+                            <small class="text-muted-custom">Flask</small>
+                            <div class="text-white">{{ flask_version }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2" style="background: var(--bg-secondary); border-radius: 8px;">
+                            <small class="text-muted-custom">Discord.py</small>
+                            <div class="text-white">{{ discord_version }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2" style="background: var(--bg-secondary); border-radius: 8px;">
+                            <small class="text-muted-custom">المنصة</small>
+                            <div class="text-white">Termux (Android)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

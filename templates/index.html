@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- الصفحة الرئيسية -->
+<div class="hero-section fade-in">
+    <h1><i class="fab fa-discord"></i> Discord Bot Hosting</h1>
+    <p>منصتك الشخصية لاستضافة بوتات الديسكورد بكل سهولة. استضف بوتاتك عبر التوكن أو رفع ملفات ZIP مع حفظ البيانات بشكل دائم.</p>
+    <a href="{{ url_for('login') }}" class="btn btn-discord btn-lg">
+        <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+    </a>
+</div>
+
+<div class="container">
+    <div class="features-grid">
+        <div class="feature-card fade-in">
+            <i class="fas fa-key"></i>
+            <h5>استضافة عبر التوكن</h5>
+            <p>أدخل توكن البوت الخاص بك وشغّله فوراً. البوت يبقى متصلاً 24/7.</p>
+        </div>
+        
+        <div class="feature-card fade-in">
+            <i class="fas fa-file-archive"></i>
+            <h5>استضافة عبر ZIP</h5>
+            <p>ارفع ملف ZIP يحتوي على كود البوت الكامل مع dependencies.</p>
+        </div>
+        
+        <div class="feature-card fade-in">
+            <i class="fas fa-database"></i>
+            <h5>حفظ البيانات</h5>
+            <p>البيانات تبقى محفوظة حتى في حال انقطاع الاتصال أو إعادة التشغيل.</p>
+        </div>
+        
+        <div class="feature-card fade-in">
+            <i class="fas fa-chart-line"></i>
+            <h5>مراقبة مباشرة</h5>
+            <p>شاهد حالة البوت والـ Logs بشكل مباشر مع إمكانية التحكم الكامل.</p>
+        </div>
+        
+        <div class="feature-card fade-in">
+            <i class="fas fa-sync-alt"></i>
+            <h5>إعادة تشغيل تلقائي</h5>
+            <p>إعادة تشغيل تلقائي للبوت في حال تعطل أو انقطع الاتصال.</p>
+        </div>
+        
+        <div class="feature-card fade-in">
+            <i class="fas fa-shield-alt"></i>
+            <h5>آمن وخاص</h5>
+            <p>بياناتك مشفرة ومحمية. فقط أنت من يملك صلاحية الوصول.</p>
+        </div>
+    </div>
+    
+    <!-- إحصائيات سريعة -->
+    <div class="row mt-4" id="home-stats">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="text-muted-custom">عدد البوتات المستضافة</h5>
+                    <h2 class="text-white" id="total-bots">جاري التحميل...</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// جلب الإحصائيات من API
+fetch('/api/stats')
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('total-bots').textContent = data.total + ' بوتات';
+    })
+    .catch(() => {
+        document.getElementById('total-bots').textContent = 'غير متاح';
+    });
+</script>
+{% endblock %}

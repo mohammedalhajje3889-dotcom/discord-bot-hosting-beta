@@ -1,0 +1,20 @@
+{
+  "apps": [{
+    "name": "discord-bot-hosting",
+    "script": "app.py",
+    "interpreter": "python3",
+    "cwd": "/data/data/com.termux/files/home/discord-bot-hosting",
+    "env": {
+      "PYTHONUNBUFFERED": "1",
+      "PORT": "5000",
+      "ADMIN_PASSWORD": "admin123"
+    },
+    "watch": false,
+    "autorestart": true,
+    "max_restarts": 10,
+    "restart_delay": 5000,
+    "error_file": "logs/pm2-error.log",
+    "out_file": "logs/pm2-out.log",
+    "pid_file": "logs/pm2.pid"
+  }]
+}

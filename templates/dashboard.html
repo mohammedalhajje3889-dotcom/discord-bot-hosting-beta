@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="fade-in">
+    <!-- الإحصائيات -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-total">
+                <div class="stat-icon"><i class="fas fa-robot"></i></div>
+                <div class="stat-number">{{ stats.total }}</div>
+                <div class="stat-label">إجمالي البوتات</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-running">
+                <div class="stat-icon"><i class="fas fa-play-circle text-success"></i></div>
+                <div class="stat-number">{{ stats.running }}</div>
+                <div class="stat-label">شغال</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-stopped">
+                <div class="stat-icon"><i class="fas fa-stop-circle text-warning"></i></div>
+                <div class="stat-number">{{ stats.stopped }}</div>
+                <div class="stat-label">متوقف</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-crashed">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle text-danger"></i></div>
+                <div class="stat-number">{{ stats.crashed }}</div>
+                <div class="stat-label">معطل</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- أزرار الإضافة -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="text-white mb-0"><i class="fas fa-robot"></i> البوتات المستضافة</h4>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('add_bot_token') }}" class="btn btn-discord">
+                <i class="fas fa-key"></i> إضافة بالتوكن
+            </a>
+            <a href="{{ url_for('add_bot_zip') }}" class="btn btn-outline-discord">
+                <i class="fas fa-file-archive"></i> إضافة بـ ZIP
+            </a>
+        </div>
+    </div>
+    
+    {% if bots %}
+    <div class="row g-3">
+        {% for bot in bots %}
+        <div class="col-lg-4 col-md-6">
+            <a href="{{ url_for('bot_detail', bot_id=bot.id) }}" class="text-decoration-none">
+                <div class="card bot-card h-100 fade-in">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="bot-name">
+                                    <span class="status-indicator status-{{ bot.get('current_status', 'stopped') }}"></span>
+                                    {{ bot.name }}
+                                </h5>
+                                <small class="bot-token">{{ bot.token[:20] }}...</small>
+                            </div>
+                            <span class="badge bg-{{ 'success' if bot.get('current_status') == 'running' else 'warning' if bot.get('current_status') == 'stopped' else 'danger' }}">
+                                {{ {'running': 'شغال', 'stopped': 'متوقف', 'crashed': 'معطل'}.get(bot.get('current_status', 'stopped'), 'متوقف') }}
+                            </span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between text-muted-custom small mb-3">
+                            <span><i class="fas fa-code"></i> {{ bot.bot_type|upper }}</span>
+                            <span><i class="fas fa-calendar"></i> {{ bot.created_at[:10] if bot.created_at else '--' }}</span>
+                        </div>
+                        
+                        <div class="bot-actions" onclick="event.stopPropagation()">
+                            {% if bot.get('current_status') == 'running' %}
+                            <form method="POST" action="{{ url_for('stop_bot', bot_id=bot.id) }}" style="display:inline">
+                                <button type="submit" class="btn btn-warning-custom btn-sm">
+                                    <i class="fas fa-stop"></i> إيقاف
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="{{ url_for('start_bot', bot_id=bot.id) }}" style="display:inline">
+                                <button type="submit" class="btn btn-success-custom btn-sm">
+                                    <i class="fas fa-play"></i> تشغيل
+                                </button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('restart_bot', bot_id=bot.id) }}" style="display:inline">
+                                <button type="submit" class="btn btn-outline-discord btn-sm">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-robot" style="font-size: 4rem; color: var(--text-secondary);"></i>
+            <h4 class="mt-3 text-muted-custom">لا يوجد بوتات بعد</h4>
+            <p class="text-muted-custom">أضف أول بوت لك الآن!</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('add_bot_token') }}" class="btn btn-discord">
+                    <i class="fas fa-key"></i> إضافة بالتوكن
+                </a>
+                <a href="{{ url_for('add_bot_zip') }}" class="btn btn-outline-discord">
+                    <i class="fas fa-file-archive"></i> إضافة بـ ZIP
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% raw %}
+<script>
+// تحديث تلقائي لحالة البوتات كل 15 ثانية
+function updateBotStatuses() {
+    bots = document.querySelectorAll('.bot-card');
+    // يمكن تفعيل التحديث التلقائي هنا
+}
+setInterval(updateBotStatuses, 15000);
+</script>
+{% endraw %}
+{% endblock %}

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Discord Bot Hosting - لوحة التحكم</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0b0;
+            --accent: #5865F2;
+            --accent-hover: #4752c4;
+            --success: #57F287;
+            --warning: #FEE75C;
+            --danger: #ED4245;
+            --border: #2a2a4a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        /* ========== الشريط العلوي ========== */
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        
+        .navbar-brand {
+            color: #fff !important;
+            font-weight: 700;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .navbar-brand i {
+            color: var(--accent);
+        }
+        
+        .nav-link {
+            color: var(--text-secondary) !important;
+            transition: all 0.3s;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+        }
+        
+        .nav-link:hover {
+            color: #fff !important;
+            background: rgba(88, 101, 242, 0.1);
+        }
+        
+        .nav-link i {
+            margin-left: 0.4rem;
+        }
+        
+        /* ========== المحتوى الرئيسي ========== */
+        .main-content {
+            padding: 2rem 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* ========== البطاقات ========== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        }
+        
+        .card-header {
+            background: rgba(88, 101, 242, 0.05);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .card-body {
+            padding: 1.25rem;
+        }
+        
+        /* ========== إحصائيات ========== */
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+        }
+        
+        .stat-card .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .stat-card .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .stat-total { border-top: 3px solid var(--accent); }
+        .stat-running { border-top: 3px solid var(--success); }
+        .stat-stopped { border-top: 3px solid var(--warning); }
+        .stat-crashed { border-top: 3px solid var(--danger); }
+        
+        /* ========== بطاقة البوت ========== */
+        .bot-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bot-card .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+        
+        .status-running { background: var(--success); box-shadow: 0 0 10px rgba(87, 242, 135, 0.5); }
+        .status-stopped { background: var(--warning); box-shadow: 0 0 10px rgba(254, 231, 92, 0.3); }
+        .status-crashed { background: var(--danger); box-shadow: 0 0 10px rgba(237, 66, 69, 0.5); }
+        
+        .bot-card .bot-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        
+        .bot-card .bot-token {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            direction: ltr;
+            text-align: left;
+        }
+        
+        .bot-card .bot-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .bot-card .bot-actions .btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            border-radius: 8px;
+        }
+        
+        /* ========== الأزرار ========== */
+        .btn-discord {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-discord:hover {
+            background: var(--accent-hover);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        
+        .btn-outline-discord {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-outline-discord:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+        
+        .btn-success-custom { background: var(--success); color: #1a1a2e; border: none; }
+        .btn-success-custom:hover { background: #45d87a; color: #1a1a2e; }
+        .btn-warning-custom { background: var(--warning); color: #1a1a2e; border: none; }
+        .btn-danger-custom { background: var(--danger); color: #fff; border: none; }
+        
+        /* ========== النماذج ========== */
+        .form-control, .form-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+        }
+        
+        .form-control::placeholder { color: var(--text-secondary); }
+        
+        .form-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+        }
+        
+        /* ========== سجل الأحداث ========== */
+        .log-container {
+            background: #0a0a14;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+        }
+        
+        .log-entry {
+            padding: 0.2rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            color: var(--text-secondary);
+        }
+        
+        .log-entry .log-time {
+            color: #666;
+            margin-left: 0.5rem;
+        }
+        
+        .log-entry.log-error { color: var(--danger); }
+        .log-entry.log-success { color: var(--success); }
+        .log-entry.log-warning { color: var(--warning); }
+        
+        /* ========== صفحة تسجيل الدخول ========== */
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+        
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        
+        .login-card .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-card .logo i {
+            font-size: 3rem;
+            color: var(--accent);
+        }
+        
+        .login-card .logo h2 {
+            color: #fff;
+            margin-top: 0.5rem;
+        }
+        
+        /* ========== صفحة البوت الرئيسية (index) ========== */
+        .hero-section {
+            text-align: center;
+            padding: 4rem 1rem;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+        }
+        
+        .hero-section h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-section h1 i {
+            color: var(--accent);
+        }
+        
+        .hero-section p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem 0;
+        }
+        
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+        }
+        
+        .feature-card i {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h5 {
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        /* ========== التذييل ========== */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        /* ========== الإشعارات ========== */
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+        
+        .alert-success { background: rgba(87, 242, 135, 0.1); color: var(--success); }
+        .alert-danger { background: rgba(237, 66, 69, 0.1); color: var(--danger); }
+        .alert-warning { background: rgba(254, 231, 92, 0.1); color: var(--warning); }
+        .alert-info { background: rgba(88, 101, 242, 0.1); color: var(--accent); }
+        
+        /* ========== التجاوب ========== */
+        @media (max-width: 768px) {
+            .hero-section h1 { font-size: 1.8rem; }
+            .stat-card .stat-number { font-size: 1.8rem; }
+            .bot-card .bot-actions { flex-direction: column; }
+            .bot-card .bot-actions .btn { width: 100%; }
+        }
+        
+        /* ========== Scrollbar ========== */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        
+        /* ========== Animations ========== */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* ========== Typography ========== */
+        .text-muted-custom { color: var(--text-secondary) !important; }
+        .bg-dark-custom { background: var(--bg-secondary) !important; }
+        .border-custom { border-color: var(--border) !important; }
+    </style>
+</head>
+<body>
+    {% if session.logged_in %}
+    <!-- الشريط العلوي للمستخدم المسجل -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fab fa-discord"></i>
+                Bot Hosting
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="addBotDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-plus-circle"></i> إضافة بوت
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" style="background: var(--bg-card); border-color: var(--border);">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('add_bot_token') }}">
+                                    <i class="fas fa-key"></i> بواسطة التوكن
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('add_bot_zip') }}">
+                                    <i class="fas fa-file-archive"></i> بواسطة ملف ZIP
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog"></i> الإعدادات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> تسجيل خروج
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- محتوى الصفحة -->
+    <div class="main-content">
+        <!-- الإشعارات -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- التذييل -->
+    <div class="footer">
+        <i class="fab fa-discord"></i> Discord Bot Hosting Panel &copy; {{ now().year }}
+        - <span class="text-muted-custom">Proudly hosted on Termux</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // تفعيل tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (el) {
+            return new bootstrap.Tooltip(el)
+        });
+        
+        // إخفاء الإشعارات تلقائياً
+        setTimeout(function() {
+            document.querySelectorAll('.alert').forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+        
+        // تحديث تلقائي للبيانات كل 10 ثواني
+        function autoRefresh() {
+            // يمكن تفعيلها حسب الحاجة
+        }
+        setInterval(autoRefresh, 10000);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

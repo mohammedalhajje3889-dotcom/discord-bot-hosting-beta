@@ -1,0 +1,19 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile -"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# حجم تخزين دائم للبيانات
+[volumes]
+  [volumes.data]
+  mountPath = "/app"
+  size = 1
+
+[env]
+  ADMIN_PASSWORD = "change-me-in-railway-dashboard"
+  SECRET_KEY = "change-me-in-railway-dashboard"
+  DEBUG = "false"

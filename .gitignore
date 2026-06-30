@@ -1,0 +1,17 @@
+# بيانات
+data/
+bots/
+uploads/
+logs/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# نظام
+.DS_Store
+Thumbs.db
