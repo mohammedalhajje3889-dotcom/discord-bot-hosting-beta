@@ -312,9 +312,15 @@ def add_bot_zip():
             flash('❌ الرجاء رفع ملف بصيغة zip فقط', 'error')
             return render_template('add_bot_zip.html', name=name, token=token)
         
+        # حفظ الملف بطريقة آمنة (بدون ERR_UPLOAD_FILE_CHANGED)
         temp_filename = f"{uuid.uuid4()}.zip"
         temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
-        zip_file.save(temp_path)
+        try:
+            with open(temp_path, 'wb') as f:
+                shutil.copyfileobj(zip_file, f)
+        except Exception as e:
+            flash(f'❌ فشل حفظ الملف: {e}', 'error')
+            return render_template('add_bot_zip.html', name=name, token=token)
         
         bot_id = bm.add_bot_from_zip(name, token, temp_path, description, user_id=session.get('user_id'))
         
@@ -358,9 +364,15 @@ def update_bot(bot_id):
             flash('❌ الرجاء رفع ملف بصيغة zip فقط', 'error')
             return render_template('bot_update.html', bot=bot)
         
+        # حفظ الملف بطريقة آمنة (بدون ERR_UPLOAD_FILE_CHANGED)
         temp_filename = f"update_{bot_id}_{uuid.uuid4()}.zip"
         temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
-        zip_file.save(temp_path)
+        try:
+            with open(temp_path, 'wb') as f:
+                shutil.copyfileobj(zip_file, f)
+        except Exception as e:
+            flash(f'❌ فشل حفظ الملف: {e}', 'error')
+            return render_template('bot_update.html', bot=bot)
         
         success = bm.update_bot_from_zip(bot_id, temp_path)
         
