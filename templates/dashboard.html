@@ -31,11 +31,27 @@
                 <div class="stat-label">معطل</div>
             </div>
         </div>
+        {% if users_count is not none %}
+        <div class="col-md-3 col-6">
+            <div class="stat-card" style="border-top: 3px solid #17a2b8;">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-number">{{ users_count }}</div>
+                <div class="stat-label">المستخدمين</div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     <!-- أزرار الإضافة -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="text-white mb-0"><i class="fas fa-robot"></i> البوتات المستضافة</h4>
+        <h4 class="text-white mb-0">
+            <i class="fas fa-robot"></i> 
+            {% if session.get('role') == 'admin' %}
+                كل البوتات
+            {% else %}
+                بوتاتي
+            {% endif %}
+        </h4>
         <div class="d-flex gap-2">
             <a href="{{ url_for('add_bot_token') }}" class="btn btn-discord">
                 <i class="fas fa-key"></i> إضافة بالتوكن
@@ -69,6 +85,9 @@
                         <div class="d-flex justify-content-between text-muted-custom small mb-3">
                             <span><i class="fas fa-code"></i> {{ bot.bot_type|upper }}</span>
                             <span><i class="fas fa-calendar"></i> {{ bot.created_at[:10] if bot.created_at else '--' }}</span>
+                            {% if bot.get('owner_name') and session.get('role') == 'admin' %}
+                            <span><i class="fas fa-user"></i> {{ bot.owner_name }}</span>
+                            {% endif %}
                         </div>
                         
                         <div class="bot-actions" onclick="event.stopPropagation()">
@@ -90,6 +109,11 @@
                                     <i class="fas fa-sync-alt"></i>
                                 </button>
                             </form>
+                            {% if bot.bot_type == 'zip' %}
+                            <a href="{{ url_for('update_bot', bot_id=bot.id) }}" class="btn btn-info btn-sm" style="background:#17a2b8;color:#fff;border:none;" onclick="event.stopPropagation()">
+                                <i class="fas fa-upload"></i>
+                            </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -118,12 +142,20 @@
 
 {% raw %}
 <script>
-// تحديث تلقائي لحالة البوتات كل 15 ثانية
-function updateBotStatuses() {
-    bots = document.querySelectorAll('.bot-card');
-    // يمكن تفعيل التحديث التلقائي هنا
-}
-setInterval(updateBotStatuses, 15000);
+// تحديث تلقائي للصفحة كل 15 ثانية
+setInterval(function() {
+    // تحديث خفيف دون إعادة تحميل
+    fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+            // تحديث الإحصائيات
+            document.querySelectorAll('.stat-number')[0].textContent = data.total;
+            document.querySelectorAll('.stat-number')[1].textContent = data.running;
+            document.querySelectorAll('.stat-number')[2].textContent = data.stopped;
+            document.querySelectorAll('.stat-number')[3].textContent = data.crashed;
+        })
+        .catch(() => {});
+}, 15000);
 </script>
 {% endraw %}
 {% endblock %}

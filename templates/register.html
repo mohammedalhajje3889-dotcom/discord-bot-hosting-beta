@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div style="font-size: 3rem;">📝</div>
+                    <h4 class="mt-2">إنشاء حساب جديد</h4>
+                    <p class="text-muted-custom">للحصول على حساب مجاني لاستضافة بوتاتك</p>
+                </div>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">👤 اسم المستخدم</label>
+                        <input type="text" name="username" class="form-control" 
+                               value="{{ request.form.get('username', '') }}"
+                               minlength="3" required
+                               placeholder="أدخل اسم المستخدم">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">🔑 كلمة المرور</label>
+                        <input type="password" name="password" class="form-control" 
+                               minlength="4" required
+                               placeholder="أدخل كلمة المرور">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">🔑 تأكيد كلمة المرور</label>
+                        <input type="password" name="confirm_password" class="form-control" 
+                               minlength="4" required
+                               placeholder="أكد كلمة المرور">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-discord w-100">
+                        <i class="fas fa-user-plus"></i> إنشاء الحساب
+                    </button>
+                </form>
+                
+                <div class="text-center mt-3">
+                    <p class="text-muted-custom mb-0">
+                        لديك حساب؟ <a href="{{ url_for('login') }}" class="text-discord">تسجيل الدخول</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

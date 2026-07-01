@@ -24,9 +24,6 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 active_processes: Dict[int, subprocess.Popen] = {}
 process_lock = threading.Lock()
 
-# مجموعة البوتات التي تم إيقافها يدوياً (حتى لا يعيد تشغيلها تلقائياً)
-manually_stopped: set = set()
-
 DATA_HELPER_SOURCE = os.path.join(os.path.dirname(__file__), "data_helper.py")
 
 def ensure_dirs(bot_id: int):
@@ -681,12 +678,7 @@ def start_bot(bot_id: int) -> bool:
         return False
 
 def stop_bot(bot_id: int) -> bool:
-    """إيقاف بوت (يدوياً)
-    يضيف البوت إلى قائمة الإيقاف اليدوي حتى لا يعيد تشغيله تلقائياً
-    """
-    # تسجيل أن هذا إيقاف يدوي
-    manually_stopped.add(bot_id)
-    
+    """إيقاف بوت"""
     with process_lock:
         process = active_processes.get(bot_id)
         if not process:
@@ -713,7 +705,7 @@ def stop_bot(bot_id: int) -> bool:
         del active_processes[bot_id]
     
     db.update_bot(bot_id, status='stopped', pid=None)
-    db.add_log(bot_id, "🛑 تم إيقاف البوت يدوياً", "warning")
+    db.add_log(bot_id, "🛑 تم إيقاف البوت", "warning")
     return True
 
 def restart_bot(bot_id: int) -> bool:
@@ -745,11 +737,7 @@ def read_output(bot_id: int, process: subprocess.Popen):
         pass
 
 def monitor_process(bot_id: int, process: subprocess.Popen):
-    """مراقبة العملية وإعادة التشغيل إذا لزم الأمر
-    
-    - إذا توقف البوت بسبب خطأ → يعيد تشغيله تلقائياً
-    - إذا أوقفه المستخدم يدوياً → لا يعيد تشغيله
-    """
+    """مراقبة العملية وإعادة التشغيل إذا لزم الأمر"""
     process.wait()
     
     with process_lock:
@@ -757,15 +745,6 @@ def monitor_process(bot_id: int, process: subprocess.Popen):
             del active_processes[bot_id]
     
     exit_code = process.returncode
-    
-    # هل هذا توقف يدوي؟
-    was_manual_stop = bot_id in manually_stopped
-    if was_manual_stop:
-        manually_stopped.discard(bot_id)
-        db.update_bot(bot_id, status='stopped', pid=None)
-        db.add_log(bot_id, "✅ البوت متوقف (إيقاف يدوي)", "info")
-        return
-    
     db.update_bot(bot_id, status='crashed' if exit_code != 0 else 'stopped', pid=None)
     
     if exit_code != 0:
@@ -802,7 +781,7 @@ def cleanup_all():
     for bot_id in bot_ids:
         stop_bot(bot_id)
 
-def add_bot_from_token(name: str, token: str, description: str = "", user_id: Optional[int] = None) -> Optional[int]:
+def add_bot_from_token(name: str, token: str, description: str = "") -> Optional[int]:
     """إضافة بوت جديد باستخدام التوكن فقط"""
     # التحقق من صحة التوكن (فحص بسيط)
     if not token or len(token) < 10:
@@ -813,8 +792,7 @@ def add_bot_from_token(name: str, token: str, description: str = "", user_id: Op
         token=token,
         bot_type='token',
         directory=f"bot_{name.lower().replace(' ', '_')[:20]}",
-        description=description,
-        user_id=user_id
+        description=description
     )
     
     # إنشاء مجلد البوت + حقن قاعدة البيانات
@@ -825,7 +803,7 @@ def add_bot_from_token(name: str, token: str, description: str = "", user_id: Op
     return bot_id
 
 def add_bot_from_zip(name: str, token: str, zip_file_path: str, 
-                     description: str = "", user_id: Optional[int] = None) -> Optional[int]:
+                     description: str = "") -> Optional[int]:
     """إضافة بوت جديد من ملف zip"""
     # التحقق من صحة التوكن
     if not token or len(token) < 10:
@@ -837,8 +815,7 @@ def add_bot_from_zip(name: str, token: str, zip_file_path: str,
         token=token,
         bot_type='zip',
         directory=f"bot_{name.lower().replace(' ', '_')[:20]}",
-        description=description,
-        user_id=user_id
+        description=description
     )
     
     # إنشاء مجلد البوت
@@ -856,158 +833,6 @@ def add_bot_from_zip(name: str, token: str, zip_file_path: str,
     db.add_log(bot_id, f"✅ تم رفع واستخراج البوت (نقطة الدخول: {entry_point})", "success")
     
     return bot_id
-
-
-def update_bot_from_zip(bot_id: int, zip_file_path: str) -> bool:
-    """تحديث بوت موجود من ملف zip جديد
-    - يحذف الكود القديم
-    - يستخرج الكود الجديد
-    - يحتفظ بقاعدة البيانات (data/)
-    - يعيد الحقن (توكن + data_helper)
-    - يعيد تشغيل البوت
-    """
-    bot_info = db.get_bot(bot_id)
-    if not bot_info:
-        print(f"❌ البوت {bot_id} غير موجود")
-        return False
-    
-    bot_dir = os.path.join(BOTS_DIR, str(bot_id))
-    code_dir = os.path.join(bot_dir, "code")
-    data_dir = os.path.join(bot_dir, "data")
-    
-    # 1. إيقاف البوت
-    print(f"🛑 إيقاف البوت {bot_id}...")
-    stop_bot(bot_id)
-    
-    # 2. نسخ احتياطي للبيانات
-    print(f"💾 حفظ البيانات...")
-    temp_data = None
-    if os.path.exists(data_dir):
-        temp_data = os.path.join(bot_dir, "_data_backup")
-        if os.path.exists(temp_data):
-            shutil.rmtree(temp_data)
-        shutil.copytree(data_dir, temp_data)
-    
-    # 3. حذف الكود القديم
-    if os.path.exists(code_dir):
-        print(f"🗑️ حذف الكود القديم...")
-        shutil.rmtree(code_dir)
-    os.makedirs(code_dir, exist_ok=True)
-    
-    # 4. استخراج الكود الجديد
-    print(f"📦 استخراج الكود الجديد...")
-    try:
-        with zipfile.ZipFile(zip_file_path, 'r') as zf:
-            zf.extractall(code_dir)
-    except zipfile.BadZipFile:
-        print(f"❌ ملف ZIP تالف")
-        # استعادة النسخة الاحتياطية
-        if temp_data and os.path.exists(temp_data):
-            if os.path.exists(data_dir):
-                shutil.rmtree(data_dir)
-            shutil.copytree(temp_data, data_dir)
-            shutil.rmtree(temp_data)
-        return False
-    
-    # 5. كشف المجلدات (نفس منطق extract_zip_bot)
-    contents = [f for f in os.listdir(code_dir) 
-                if not f.startswith('.') and not f.startswith('__')]
-    if len(contents) == 1:
-        single_item = os.path.join(code_dir, contents[0])
-        if os.path.isdir(single_item):
-            inner_dir = single_item
-            for item in os.listdir(inner_dir):
-                shutil.move(os.path.join(inner_dir, item), 
-                           os.path.join(code_dir, item))
-            os.rmdir(inner_dir)
-            print(f"📦 تم كشف مجلد {contents[0]} ونقل محتوياته")
-    
-    # 6. البحث عن نقطة الدخول
-    possible_entries = ['main.py', 'bot.py', 'index.py', 'run.py', 'start.py', 'app.py']
-    found_entry = None
-    for entry in possible_entries:
-        entry_path = os.path.join(code_dir, entry)
-        if os.path.exists(entry_path):
-            found_entry = entry
-            break
-    if not found_entry:
-        for root, dirs, files in os.walk(code_dir):
-            depth = root.replace(code_dir, '').count(os.sep)
-            if depth > 2:
-                continue
-            for entry in possible_entries:
-                if entry in files:
-                    rel_path = os.path.relpath(os.path.join(root, entry), code_dir)
-                    found_entry = rel_path
-                    break
-            if found_entry:
-                break
-    if not found_entry:
-        for root, dirs, files in os.walk(code_dir):
-            py_files = [f for f in files if f.endswith('.py') and not f.startswith('__')]
-            if py_files:
-                rel_path = os.path.relpath(os.path.join(root, py_files[0]), code_dir)
-                found_entry = rel_path
-                break
-    
-    if not found_entry:
-        print(f"❌ ما لقينا أي ملف Python في الـ ZIP")
-        if temp_data and os.path.exists(temp_data):
-            if os.path.exists(data_dir):
-                shutil.rmtree(data_dir)
-            shutil.copytree(temp_data, data_dir)
-            shutil.rmtree(temp_data)
-        return False
-    
-    print(f"📄 نقطة الدخول: {found_entry}")
-    
-    # 7. استعادة قاعدة البيانات
-    if temp_data and os.path.exists(temp_data):
-        if os.path.exists(data_dir):
-            shutil.rmtree(data_dir)
-        shutil.copytree(temp_data, data_dir)
-        shutil.rmtree(temp_data)
-        print(f"💾 تم استعادة قاعدة البيانات")
-    else:
-        os.makedirs(data_dir, exist_ok=True)
-    
-    # 8. حقن data_helper + توكن
-    _inject_credentials(code_dir, bot_info['token'], db.get_setting(bot_id, 'PREFIX', ''))
-    _inject_data_helper(bot_dir)
-    
-    # نسخ data_helper داخل مجلد الكود
-    code_helper = os.path.join(code_dir, "data_helper.py")
-    if not os.path.exists(code_helper) and os.path.exists(DATA_HELPER_SOURCE):
-        try:
-            shutil.copy2(DATA_HELPER_SOURCE, code_helper)
-        except:
-            pass
-    
-    # 9. تحديث قاعدة البيانات
-    db.update_bot(bot_id, entry_point=found_entry)
-    db.add_log(bot_id, f"🔄 تم تحديث البوت من ZIP (نقطة الدخول: {found_entry})", "success")
-    
-    # 10. تثبيت المتطلبات
-    requirements_paths = []
-    for root, dirs, files in os.walk(code_dir):
-        if 'requirements.txt' in files:
-            requirements_paths.append(os.path.join(root, 'requirements.txt'))
-    for req_path in requirements_paths:
-        try:
-            subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-r", req_path],
-                cwd=os.path.dirname(req_path),
-                capture_output=True,
-                timeout=120
-            )
-        except Exception as e:
-            print(f"⚠️ فشل تثبيت المتطلبات: {e}")
-    
-    # 11. إعادة تشغيل البوت
-    print(f"🚀 إعادة تشغيل البوت...")
-    start_bot(bot_id)
-    
-    return True
 
 # تسجيل إشارات الإيقاف النظيف
 import atexit

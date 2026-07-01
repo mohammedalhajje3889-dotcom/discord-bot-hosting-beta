@@ -103,6 +103,12 @@
                             </button>
                         </form>
                         
+                        {% if bot.bot_type == 'zip' %}
+                        <a href="{{ url_for('update_bot', bot_id=bot.id) }}" class="btn btn-info w-100" style="background: #17a2b8; color: #fff; border: none;">
+                            <i class="fas fa-upload"></i> تحديث البوت (ZIP جديد)
+                        </a>
+                        {% endif %}
+                        
                         <form method="POST" action="{{ url_for('delete_bot', bot_id=bot.id) }}" 
                               onsubmit="return confirm('هل أنت متأكد من حذف هذا البوت؟ سيتم حذف جميع البيانات!');">
                             <button type="submit" class="btn btn-danger-custom w-100">
